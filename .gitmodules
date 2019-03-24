@@ -1,0 +1,3 @@
+[submodule "3dparts/libtgvoip"]
+	path = 3dparts/libtgvoip
+	url = https://github.com/danog/libtgvoip.git
