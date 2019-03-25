@@ -15,6 +15,8 @@ If not, see <http://www.gnu.org/licenses/>.
 #include <common.h>
 
 #ifdef __cplusplus
+#include <voipcontroller.h>
+VoIP* get_client(client_t client); //Exports the function that exposes the wrapped object only for CPP
 extern "C" {
 #endif
 client_t create_client(call_params_t call_params);
@@ -48,6 +50,7 @@ void request_call_upgrade(client_t client);
 void send_group_call_key(client_t client, unsigned char* key);
 int get_state(client_t client);
 int is_playing(client_t client);
+int is_destroyed(client_t client);
 #ifdef __cplusplus
 }
 #endif

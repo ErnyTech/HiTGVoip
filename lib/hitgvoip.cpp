@@ -11,9 +11,7 @@ If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <hitgvoip.h>
-#include "voipcontroller.h"
-#include <cstring>
-#include <vector>
+#include <voipcontroller.h>
 
 VoIP* get_client(client_t client) {
     return reinterpret_cast<VoIP*>(client.client_id);
@@ -21,7 +19,7 @@ VoIP* get_client(client_t client) {
 
 extern "C" {
 client_t create_client(call_params_t call_params) {
-    uintptr_t client_id = reinterpret_cast<uintptr_t>(new VoIP(call_params.creator,
+    auto client_id = reinterpret_cast<uintptr_t>(new VoIP(call_params.creator,
                                                                call_params.other_ID,
                                                                call_params.call_id,
                                                                call_params.call_state,
@@ -115,11 +113,8 @@ int set_output_file(client_t client, char* output_file_path) {
 
     get_client(client)->output_file = fopen(output_file_path, "wb");
 
-    if (get_client(client)->output_file== nullptr) {
-        return false;
-    }
+    return get_client(client)->output_file != nullptr;
 
-    return true;
 }
 
 int play(client_t client, char* input_file_path) {
@@ -138,7 +133,7 @@ int play_on_hold(client_t client, char** input_files_path, size_t length) {
     FILE *tmp = nullptr;
 
     MutexGuard m(get_client(client)->input_mutex);
-    while (get_client(client)->hold_files.size()) {
+    while (!get_client(client)->hold_files.empty()) {
         fclose(get_client(client)->hold_files.front());
         get_client(client)->hold_files.pop();
     }
@@ -154,7 +149,7 @@ int play_on_hold(client_t client, char** input_files_path, size_t length) {
 }
 
 void set_mic_mute(client_t client, int mute) {
-    get_client(client)->inst->SetMicMute(mute);
+    get_client(client)->inst->SetMicMute(static_cast<bool>(mute));
 }
 
 void debug_ctl(client_t client, int request, int param) {
@@ -204,7 +199,7 @@ size_t get_debug_string(client_t client, char* debug_string, size_t size) {
 }
 
 call_stats_t get_stats(client_t client) {
-    VoIPController::TrafficStats _stats;
+    VoIPController::TrafficStats _stats {};
     get_client(client)->inst->GetStats(&_stats);
     return {_stats.bytesSentWifi, _stats.bytesSentMobile, _stats.bytesRecvdWifi, _stats.bytesRecvdMobile};
 }
@@ -218,7 +213,7 @@ void request_call_upgrade(client_t client) {
 }
 
 void send_group_call_key(client_t client, unsigned char* key) {
-    unsigned char *key_data = reinterpret_cast<unsigned char*>(malloc(256));
+    auto *key_data = static_cast<unsigned char*>(malloc(256));
     memcpy(key_data, key, 256);
     get_client(client)->inst->SendGroupCallKey(key);
     delete key_data;
@@ -230,5 +225,9 @@ int get_state(client_t client) {
 
 int is_playing(client_t client) {
     return get_client(client)->playing;
+}
+
+int is_destroyed(client_t client) {
+    return get_client(client)->destroyed;
 }
 }

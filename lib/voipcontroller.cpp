@@ -10,14 +10,7 @@ You should have received a copy of the GNU General Public License along with php
 If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "voipcontroller.h"
-#include <string.h>
-#include <wchar.h>
-#include <map>
-#include <string>
-#include <vector>
-#include <queue>
-
+#include <voipcontroller.h>
 #include <libtgvoip/VoIPServerConfig.h>
 #include <libtgvoip/threading.h>
 #include <libtgvoip/logging.h>
@@ -26,97 +19,93 @@ using namespace tgvoip;
 using namespace tgvoip::audio;
 using namespace std;
 
-VoIP::VoIP(bool creator, int32_t other_ID, int32_t call_id, CALL_STATE callState, CallProtocols call_protocols) {
+VoIP::VoIP(bool creator, long other_ID, long call_id, CALL_STATE callState, CallProtocols call_protocols) {
     this->creator = creator;
     this->other_ID = other_ID;
     this->call_id = call_id;
     this->callState = callState;
     this->call_protocols = call_protocols;
+    this->state = STATE_CREATED;
     initVoIPController();
 }
 
-void VoIP::initVoIPController()
-{
+void VoIP::initVoIPController() {
     inst = new VoIPController();
 
     this->output_file = nullptr;
 
     inst->implData = static_cast<void*>(this);
-    VoIPController::Callbacks callbacks;
+    VoIPController::Callbacks callbacks {};
     callbacks.connectionStateChanged = [](VoIPController *controller, int state) {
-        (static_cast<VoIP*>(controller->implData))->state = state;
-        if (state == STATE_FAILED)
-        {
+        static_cast<VoIP*>(controller->implData)->state = state;
+
+        if (state == STATE_FAILED) {
             (static_cast<VoIP*>(controller->implData))->deinitVoIPController();
         }
     };
+
     callbacks.signalBarCountChanged = nullptr;
     callbacks.groupCallKeySent = nullptr;
     callbacks.groupCallKeyReceived = nullptr;
     callbacks.upgradeToGroupCallRequested = nullptr;
     inst->SetCallbacks(callbacks);
-    inst->SetAudioDataCallbacks([this](int16_t *buffer, size_t size) { this->sendAudioFrame(buffer, size); }, [this](int16_t *buffer, size_t size) { this->recvAudioFrame(buffer, size); });
+    inst->SetAudioDataCallbacks([this](int16_t *buffer, size_t size) {
+        this->sendAudioFrame(buffer, size);
+        }, [this](int16_t *buffer, size_t size) {
+        this->recvAudioFrame(buffer, size);
+    });
 
 }
 
-void VoIP::deinitVoIPController()
-{
-    if (this->callState != CALL_STATE_ENDED)
-    {
+void VoIP::deinitVoIPController() {
+    if (this->callState != CALL_STATE_ENDED) {
         this->callState = CALL_STATE_ENDED;
-        if (inst)
-        {
+
+        if (inst) {
             inst->Stop();
             delete inst;
             inst=nullptr;
         }
 
-        while (this->hold_files.size())
-        {
+        while (!this->hold_files.empty()) {
             fclose(this->hold_files.front());
             this->hold_files.pop();
         }
-        while (this->input_files.size())
-        {
+
+        while (!this->input_files.empty()) {
             fclose(this->input_files.front());
             this->input_files.pop();
         }
+
         unsetOutputFile();
+        this->destroyed = true;
     }
 }
 
-void VoIP::recvAudioFrame(int16_t *data, size_t size)
-{
+void VoIP::recvAudioFrame(int16_t *data, size_t size) {
     MutexGuard m(this->output_mutex);
-    if (this->output_file != nullptr)
-    {
-        if (fwrite(data, sizeof(int16_t), size, this->output_file) != size)
-        {
+
+    if (this->output_file != nullptr) {
+        if (fwrite(data, sizeof(int16_t), size, this->output_file) != size) {
             LOGE("COULD NOT WRITE DATA TO FILE");
         }
     }
 }
-void VoIP::sendAudioFrame(int16_t *data, size_t size)
-{
+void VoIP::sendAudioFrame(int16_t *data, size_t size) {
     MutexGuard m(this->input_mutex);
 
-    if (!this->input_files.empty())
-    {
-        if ((this->read_input = fread(data, sizeof(int16_t), size, this->input_files.front())) != size)
-        {
+    if (!this->input_files.empty()) {
+        if ((this->read_input = fread(data, sizeof(int16_t), size, this->input_files.front())) != size) {
             fclose(this->input_files.front());
             this->input_files.pop();
             memset(data + (this->read_input % size), 0, size - (this->read_input % size));
         }
         this->playing = true;
     }
-    else
-    {
+    else {
         this->playing = false;
-        if (!this->hold_files.empty())
-        {
-            if ((this->read_input = fread(data, sizeof(int16_t), size, this->hold_files.front())) != size)
-            {
+        if (!this->hold_files.empty()) {
+            if ((this->read_input = fread(data, sizeof(int16_t), size, this->hold_files.front())) != size) {
                 fseek(this->hold_files.front(), 0, SEEK_SET);
                 this->hold_files.push(this->hold_files.front());
                 this->hold_files.pop();
@@ -126,15 +115,8 @@ void VoIP::sendAudioFrame(int16_t *data, size_t size)
     }
 }
 
-void VoIP::__wakeup()
-{
-    this->callState = CALL_STATE_ENDED;
-}
-
-int VoIP::unsetOutputFile()
-{
-    if (this->output_file == nullptr)
-    {
+int VoIP::unsetOutputFile() {
+    if (this->output_file == nullptr) {
         return false;
     }
 
@@ -142,6 +124,5 @@ int VoIP::unsetOutputFile()
     fflush(this->output_file);
     fclose(this->output_file);
     this->output_file = nullptr;
-
     return true;
 }
