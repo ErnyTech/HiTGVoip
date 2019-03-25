@@ -25,7 +25,7 @@ int discard_call(client_t client, call_discard_reason_t call_discard_reason, int
 int accept_call(client_t client);
 void close_call(client_t client);
 void __wakeup(client_t client);
-int startTheMagic(client_t client);
+int start(client_t client);
 int64_t when_created(client_t client);
 int is_creator(client_t client);
 long get_other_ID(client_t client);
@@ -51,7 +51,12 @@ void send_group_call_key(client_t client, unsigned char* key);
 int get_state(client_t client);
 int is_playing(client_t client);
 int is_destroyed(client_t client);
+void set_server_config(const char **values, int count);
+void set_config(client_t client, config_t config);
+void set_encryption_key(client_t client, char* key);
+void set_endpoints(client_t client, endpoints_t endpoints);
+void set_network_type(client_t client, NET_TYPE type);
+void set_proxy(client_t client, proxy_t proxy);
 #ifdef __cplusplus
 }
-#endif
 #endif // LIBTGVOIP_H

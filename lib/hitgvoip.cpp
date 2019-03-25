@@ -12,6 +12,8 @@ If not, see <http://www.gnu.org/licenses/>.
 
 #include <hitgvoip.h>
 #include <voipcontroller.h>
+#include <libtgvoip/VoIPServerConfig.h>
+#include <string>
 
 VoIP* get_client(client_t client) {
     return reinterpret_cast<VoIP*>(client.client_id);
@@ -65,7 +67,7 @@ void __wakeup(client_t client) {
     get_client(client)->callState = CALL_STATE_ENDED;
 }
 
-int startTheMagic(client_t client) {
+int start(client_t client) {
     if (get_client(client)->state == STATE_WAIT_INIT_ACK) {
         client.discard_callback(get_client(client)->call_id, CallDiscardReasonDisconnected, 5);
         get_client(client)->deinitVoIPController();
@@ -213,10 +215,10 @@ void request_call_upgrade(client_t client) {
 }
 
 void send_group_call_key(client_t client, unsigned char* key) {
-    auto *key_data = static_cast<unsigned char*>(malloc(256));
+    auto *key_data = new unsigned char[256];
     memcpy(key_data, key, 256);
     get_client(client)->inst->SendGroupCallKey(key);
-    delete key_data;
+    delete[] key_data;
 }
 
 int get_state(client_t client) {
@@ -230,4 +232,65 @@ int is_playing(client_t client) {
 int is_destroyed(client_t client) {
     return get_client(client)->destroyed;
 }
+
+void set_server_config(const char **values, int count) {
+    ServerConfig::GetSharedInstance()->Update(values, count);
+}
+
+void set_config(client_t client, config_t config) {
+    VoIPController::Config config_obj;
+    config_obj.recvTimeout = config.recv_timeout;
+    config_obj.initTimeout = config.init_timeout;
+    config_obj.dataSaving = config.data_saving;
+    config_obj.enableAEC = config.enableAEC;
+    config_obj.enableNS = config.enableNS;
+    config_obj.enableAGC = config.enableAGC;
+    config_obj.enableCallUpgrade = config.enableCallUpgrade;
+
+    if(config.log_file_path != nullptr) {
+        config_obj.logFilePath = config.log_file_path;
+    }
+
+    if(config.status_dump_path != nullptr) {
+        config_obj.statsDumpFilePath = config.status_dump_path;
+    }
+
+    get_client(client)->inst->SetConfig(config_obj);
+}
+
+void set_encryption_key(client_t client, char* key) {
+    auto *key_data = new char[256];
+    memcpy(key_data, key, 256);
+    get_client(client)->inst->SetEncryptionKey(key, get_client(client)->creator);
+    delete[] key_data;
+}
+
+void set_endpoints(client_t client, endpoints_t endpoints) {
+    vector<Endpoint> endpoints_obj;
+    IPv4Address ipv4(std::string(endpoints.ipv4));
+    IPv6Address ipv6("::0");
+    auto *peer_tag = new unsigned char[16];
+
+    if(endpoints.ipv6[0] != '\0') {
+        ipv6 = IPv6Address(std::string(endpoints.ipv6));
+    }
+
+    if(endpoints.peer_tag[0] != '\0') {
+        memcpy(peer_tag, endpoints.peer_tag, 16);
+    }
+
+    endpoints_obj.emplace_back(endpoints.id, endpoints.port, ipv4, ipv6, Endpoint::TYPE_UDP_RELAY, peer_tag);
+    endpoints_obj.emplace_back(endpoints.id, endpoints.port, ipv4, ipv6, Endpoint::TYPE_TCP_RELAY, peer_tag);
+    delete[] peer_tag;
+    get_client(client)->inst->SetRemoteEndpoints(endpoints_obj, get_protocol(client).udp_p2p_, get_protocol(client).max_layer_);
+}
+
+void set_network_type(client_t client, NET_TYPE type) {
+    get_client(client)->inst->SetNetworkType(type);
+}
+
+void set_proxy(client_t client, proxy_t proxy) {
+    get_client(client)->inst->SetProxy(proxy.protocol, std::string(proxy.address), proxy.port, std::string(proxy.username), std::string(proxy.password));
+}
+
 }

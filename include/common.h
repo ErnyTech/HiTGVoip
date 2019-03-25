@@ -48,6 +48,32 @@ typedef enum {
 } CALL_STATE;
 
 typedef enum {
+    PROXY_NONE = 0,
+    PROXY_SOCKS5,
+} PROXY_PROTOCOL;
+
+typedef enum {
+    NET_TYPE_UNKNOWN=0,
+    NET_TYPE_GPRS,
+    NET_TYPE_EDGE,
+    NET_TYPE_3G,
+    NET_TYPE_HSPA,
+    NET_TYPE_LTE,
+    NET_TYPE_WIFI,
+    NET_TYPE_ETHERNET,
+    NET_TYPE_OTHER_HIGH_SPEED,
+    NET_TYPE_OTHER_LOW_SPEED,
+    NET_TYPE_DIALUP,
+    NET_TYPE_OTHER_MOBILE
+} NET_TYPE;
+
+typedef enum {
+    DATA_SAVING_NEVER = 0,
+    DATA_SAVING_MOBILE,
+    DATA_SAVING_ALWAYS
+} DATA_SAVING;
+
+typedef enum {
     CallDiscardReasonDeclined,
     CallDiscardReasonDisconnected,
     CallDiscardReasonEmpty,
@@ -63,9 +89,37 @@ typedef struct {
 } call_stats_t;
 
 typedef struct {
+    double recv_timeout;
+    double init_timeout;
+    DATA_SAVING data_saving;
+    bool enableAEC;
+    bool enableNS;
+    bool enableAGC;
+    bool enableCallUpgrade;
+    const char *log_file_path;
+    const char *status_dump_path;
+} config_t;
+
+typedef struct {
+    int64_t id;
+    char* ipv4;
+    char* ipv6;
+    int32_t port;
+    char* peer_tag;
+} endpoints_t;
+
+typedef struct {
+    PROXY_PROTOCOL protocol;
+    char* address;
+    uint16_t port;
+    char* username;
+    char* password;
+} proxy_t;
+
+typedef struct {
     uintptr_t client_id;
-    void (*discard_callback)(int32_t call_id, call_discard_reason_t call_discard_reason, int32_t reason);
-    int (*accept_callback)(int32_t call_id);
+    void (*discard_callback)(long call_id, call_discard_reason_t call_discard_reason, int32_t reason);
+    int (*accept_callback)(long call_id);
 } client_t;
 
 typedef struct {
@@ -74,8 +128,8 @@ typedef struct {
     long call_id;
     CALL_STATE call_state;
     CallProtocols call_protocols;
-    void (*discard_callback)(int32_t call_id, call_discard_reason_t call_discard_reason, int32_t reason);
-    int (*accept_callback)(int32_t call_id);
+    void (*discard_callback)(long call_id, call_discard_reason_t call_discard_reason, int32_t reason);
+    int (*accept_callback)(long call_id);
 } call_params_t;
 #ifdef __cplusplus
 }
