@@ -59,4 +59,5 @@ void set_network_type(client_t client, NET_TYPE type);
 void set_proxy(client_t client, proxy_t proxy);
 #ifdef __cplusplus
 }
+#endif
 #endif // LIBTGVOIP_H
