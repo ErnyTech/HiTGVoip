@@ -7,5 +7,6 @@
 	"homepage": "https://github.com/ErnyTech/HiTGVoip",
 	"targetType": "library",
 	"sourcePaths": ["bindings/dlang"],
+	"importPaths": ["bindings/dlang"],
 	"libs": ["opus", "ssl", "crypto", "HiTGVoip"],
 }
