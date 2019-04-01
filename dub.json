@@ -1,0 +1,11 @@
+{
+	"name" : "hitgvoip",
+	"description" : "High performance libtgvoip wrapper",
+        "copyright": "Copyright 2016-2017 Daniil Gentili, Copyright 2019 Ernesto Castellotti <erny.castell@gmail.com>",
+	"license": "AGPLv3",
+	"authors": ["Ernesto Castellotti"],
+	"homepage": "https://github.com/ErnyTech/HiTGVoip",
+	"targetType": "library",
+	"sourcePaths": ["bindings/dlang"],
+	"libs": ["opus", "ssl", "crypto", "HiTGVoip"],
+}

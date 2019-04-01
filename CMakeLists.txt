@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(HiTGVoip)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "-O3 -fpic -finline-functions -ffast-math -fno-strict-aliasing")
 set(CMAKE_C_FLAGS "-O3 -fexceptions -fpic -finline-functions -ffast-math")
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
@@ -23,9 +23,14 @@ target_compile_definitions(tgvoip PUBLIC TGVOIP_USE_CALLBACK_AUDIO_IO WEBRTC_POS
 
 file(GLOB SOURCES "lib/*.cpp")
 file(GLOB HEADERS "include/*.h")
+
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
-target_include_directories(${PROJECT_NAME} PUBLIC 3dparts)
+target_include_directories(${PROJECT_NAME} PUBLIC 3dparts)	
 target_link_libraries(${PROJECT_NAME} tgvoip ${OPUS_LIBRARY} Threads::Threads OpenSSL::Crypto OpenSSL::SSL)
+
+install(TARGETS tgvoip
+        ARCHIVE DESTINATION lib
+)
 
 install(TARGETS ${PROJECT_NAME}
         LIBRARY DESTINATION lib
